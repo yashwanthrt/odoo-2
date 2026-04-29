@@ -79,13 +79,16 @@ def customers(data: RequestModel):
 
             clean_data = clean_input(raw_data)
 
-            # 🔹 remove id/name from update payload
-            clean_data.pop("name", None) if data.name else None
+            # ✅ FIX: DO NOT REMOVE NAME (previous bug removed this)
+            # clean_data.pop("name", None)  ❌ removed
+
+            # ✅ SAFETY: prevent empty updates
+            if not clean_data:
+                raise HTTPException(status_code=400, detail="No valid fields to update")
 
             if data.id:
                 return odoo_service.update_partner(data.id, clean_data)
             else:
-                # 🔹 find by name then update
                 records = odoo_service.get_customers(name=data.name)
                 if not records:
                     raise HTTPException(status_code=404, detail="record not found")
@@ -139,7 +142,13 @@ def vendors(data: RequestModel):
                 raise HTTPException(status_code=400, detail="id or name required")
 
             clean_data = clean_input(raw_data)
-            clean_data.pop("name", None) if data.name else None
+
+            # ✅ FIX: DO NOT REMOVE NAME (previous bug removed this)
+            # clean_data.pop("name", None)  ❌ removed
+
+            # ✅ SAFETY: prevent empty updates
+            if not clean_data:
+                raise HTTPException(status_code=400, detail="No valid fields to update")
 
             if data.id:
                 return odoo_service.update_partner(data.id, clean_data)
