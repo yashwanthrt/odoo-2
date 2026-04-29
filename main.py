@@ -49,7 +49,12 @@ def get_partners(
 def customers(data: RequestModel):
     try:
         if data.action == "create":
-            return odoo_service.create_customer(data.dict())
+            # ✅ CLEAN INPUT (FIX)
+            clean_data = {
+                k: v for k, v in data.dict(exclude_none=True).items()
+                if k in ["name", "email", "phone", "mobile", "city"] and v not in ["", "string", "null"]
+            }
+            return odoo_service.create_customer(clean_data)
 
         elif data.action in ["list", "read"]:
             return odoo_service.get_customers(
@@ -62,12 +67,12 @@ def customers(data: RequestModel):
             if not data.id:
                 raise HTTPException(status_code=400, detail="id required")
 
-            # ✅ FIX APPLIED HERE (ONLY CHANGE)
-            allowed_fields = ["name", "email", "phone", "mobile"]
+            # ✅ CLEAN + STRICT UPDATE DATA (FIX)
+            allowed_fields = ["name", "email", "phone", "mobile", "city"]
 
             update_data = {
                 k: v for k, v in data.dict(exclude_none=True).items()
-                if k in allowed_fields
+                if k in allowed_fields and v not in ["", "string", "null"]
             }
 
             return odoo_service.update_partner(data.id, update_data)
@@ -75,6 +80,10 @@ def customers(data: RequestModel):
         elif data.action == "delete":
             if not data.id:
                 raise HTTPException(status_code=400, detail="id required")
+
+            # ✅ BASIC VALIDATION (FIX)
+            if data.id <= 0:
+                raise HTTPException(status_code=400, detail="invalid id")
 
             return odoo_service.delete_partner(data.id)
 
@@ -92,7 +101,12 @@ def customers(data: RequestModel):
 def vendors(data: RequestModel):
     try:
         if data.action == "create":
-            return odoo_service.create_vendor(data.dict())
+            # ✅ CLEAN INPUT (FIX)
+            clean_data = {
+                k: v for k, v in data.dict(exclude_none=True).items()
+                if k in ["name", "email", "phone", "mobile", "city"] and v not in ["", "string", "null"]
+            }
+            return odoo_service.create_vendor(clean_data)
 
         elif data.action in ["list", "read"]:
             return odoo_service.get_vendors(
@@ -105,12 +119,12 @@ def vendors(data: RequestModel):
             if not data.id:
                 raise HTTPException(status_code=400, detail="id required")
 
-            # ✅ FIX APPLIED HERE (ONLY CHANGE)
-            allowed_fields = ["name", "email", "phone", "mobile"]
+            # ✅ CLEAN + STRICT UPDATE DATA (FIX)
+            allowed_fields = ["name", "email", "phone", "mobile", "city"]
 
             update_data = {
                 k: v for k, v in data.dict(exclude_none=True).items()
-                if k in allowed_fields
+                if k in allowed_fields and v not in ["", "string", "null"]
             }
 
             return odoo_service.update_partner(data.id, update_data)
@@ -118,6 +132,10 @@ def vendors(data: RequestModel):
         elif data.action == "delete":
             if not data.id:
                 raise HTTPException(status_code=400, detail="id required")
+
+            # ✅ BASIC VALIDATION (FIX)
+            if data.id <= 0:
+                raise HTTPException(status_code=400, detail="invalid id")
 
             return odoo_service.delete_partner(data.id)
 
