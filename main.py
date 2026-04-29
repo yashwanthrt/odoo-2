@@ -44,16 +44,26 @@ def get_partners(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ---------------- COMMON CLEAN FUNCTION ----------------
+def clean_input(data_dict):
+    return {
+        k: v for k, v in data_dict.items()
+        if k in ["name", "email", "phone", "mobile", "city"]
+        and v not in ["", "string", "null", None]
+    }
+
+
 # ---------------- CUSTOMERS ----------------
 @app.post("/customers")
 def customers(data: RequestModel):
     try:
+        raw_data = data.dict(exclude_none=True)
+
         if data.action == "create":
-            # ✅ CLEAN INPUT (FIX)
-            clean_data = {
-                k: v for k, v in data.dict(exclude_none=True).items()
-                if k in ["name", "email", "phone", "mobile", "city"] and v not in ["", "string", "null"]
-            }
+            if not data.name:
+                raise HTTPException(status_code=400, detail="name required")
+
+            clean_data = clean_input(raw_data)
             return odoo_service.create_customer(clean_data)
 
         elif data.action in ["list", "read"]:
@@ -64,28 +74,36 @@ def customers(data: RequestModel):
             )
 
         elif data.action == "update":
-            if not data.id:
-                raise HTTPException(status_code=400, detail="id required")
+            if not data.id and not data.name:
+                raise HTTPException(status_code=400, detail="id or name required")
 
-            # ✅ CLEAN + STRICT UPDATE DATA (FIX)
-            allowed_fields = ["name", "email", "phone", "mobile", "city"]
+            clean_data = clean_input(raw_data)
 
-            update_data = {
-                k: v for k, v in data.dict(exclude_none=True).items()
-                if k in allowed_fields and v not in ["", "string", "null"]
-            }
+            # 🔹 remove id/name from update payload
+            clean_data.pop("name", None) if data.name else None
 
-            return odoo_service.update_partner(data.id, update_data)
+            if data.id:
+                return odoo_service.update_partner(data.id, clean_data)
+            else:
+                # 🔹 find by name then update
+                records = odoo_service.get_customers(name=data.name)
+                if not records:
+                    raise HTTPException(status_code=404, detail="record not found")
+
+                return odoo_service.update_partner(records[0]["id"], clean_data)
 
         elif data.action == "delete":
-            if not data.id:
-                raise HTTPException(status_code=400, detail="id required")
+            if not data.id and not data.name:
+                raise HTTPException(status_code=400, detail="id or name required")
 
-            # ✅ BASIC VALIDATION (FIX)
-            if data.id <= 0:
-                raise HTTPException(status_code=400, detail="invalid id")
+            if data.id:
+                return odoo_service.delete_partner(data.id)
+            else:
+                records = odoo_service.get_customers(name=data.name)
+                if not records:
+                    raise HTTPException(status_code=404, detail="record not found")
 
-            return odoo_service.delete_partner(data.id)
+                return odoo_service.delete_partner(records[0]["id"])
 
         else:
             raise HTTPException(status_code=400, detail="Invalid action")
@@ -100,12 +118,13 @@ def customers(data: RequestModel):
 @app.post("/vendors")
 def vendors(data: RequestModel):
     try:
+        raw_data = data.dict(exclude_none=True)
+
         if data.action == "create":
-            # ✅ CLEAN INPUT (FIX)
-            clean_data = {
-                k: v for k, v in data.dict(exclude_none=True).items()
-                if k in ["name", "email", "phone", "mobile", "city"] and v not in ["", "string", "null"]
-            }
+            if not data.name:
+                raise HTTPException(status_code=400, detail="name required")
+
+            clean_data = clean_input(raw_data)
             return odoo_service.create_vendor(clean_data)
 
         elif data.action in ["list", "read"]:
@@ -116,28 +135,33 @@ def vendors(data: RequestModel):
             )
 
         elif data.action == "update":
-            if not data.id:
-                raise HTTPException(status_code=400, detail="id required")
+            if not data.id and not data.name:
+                raise HTTPException(status_code=400, detail="id or name required")
 
-            # ✅ CLEAN + STRICT UPDATE DATA (FIX)
-            allowed_fields = ["name", "email", "phone", "mobile", "city"]
+            clean_data = clean_input(raw_data)
+            clean_data.pop("name", None) if data.name else None
 
-            update_data = {
-                k: v for k, v in data.dict(exclude_none=True).items()
-                if k in allowed_fields and v not in ["", "string", "null"]
-            }
+            if data.id:
+                return odoo_service.update_partner(data.id, clean_data)
+            else:
+                records = odoo_service.get_vendors(name=data.name)
+                if not records:
+                    raise HTTPException(status_code=404, detail="record not found")
 
-            return odoo_service.update_partner(data.id, update_data)
+                return odoo_service.update_partner(records[0]["id"], clean_data)
 
         elif data.action == "delete":
-            if not data.id:
-                raise HTTPException(status_code=400, detail="id required")
+            if not data.id and not data.name:
+                raise HTTPException(status_code=400, detail="id or name required")
 
-            # ✅ BASIC VALIDATION (FIX)
-            if data.id <= 0:
-                raise HTTPException(status_code=400, detail="invalid id")
+            if data.id:
+                return odoo_service.delete_partner(data.id)
+            else:
+                records = odoo_service.get_vendors(name=data.name)
+                if not records:
+                    raise HTTPException(status_code=404, detail="record not found")
 
-            return odoo_service.delete_partner(data.id)
+                return odoo_service.delete_partner(records[0]["id"])
 
         else:
             raise HTTPException(status_code=400, detail="Invalid action")
