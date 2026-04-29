@@ -62,9 +62,13 @@ def customers(data: RequestModel):
             if not data.id:
                 raise HTTPException(status_code=400, detail="id required")
 
-            update_data = data.dict(exclude_none=True)
-            update_data.pop("action", None)
-            update_data.pop("id", None)
+            # ✅ FIX APPLIED HERE (ONLY CHANGE)
+            allowed_fields = ["name", "email", "phone", "mobile"]
+
+            update_data = {
+                k: v for k, v in data.dict(exclude_none=True).items()
+                if k in allowed_fields
+            }
 
             return odoo_service.update_partner(data.id, update_data)
 
@@ -101,9 +105,13 @@ def vendors(data: RequestModel):
             if not data.id:
                 raise HTTPException(status_code=400, detail="id required")
 
-            update_data = data.dict(exclude_none=True)
-            update_data.pop("action", None)
-            update_data.pop("id", None)
+            # ✅ FIX APPLIED HERE (ONLY CHANGE)
+            allowed_fields = ["name", "email", "phone", "mobile"]
+
+            update_data = {
+                k: v for k, v in data.dict(exclude_none=True).items()
+                if k in allowed_fields
+            }
 
             return odoo_service.update_partner(data.id, update_data)
 
